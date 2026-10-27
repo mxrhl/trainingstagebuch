@@ -67,6 +67,7 @@ input:focus,textarea:focus{border-color:var(--acc);background:#fff}
 .tabs button.on{background:var(--acc);color:#fff}
 textarea{min-height:130px;font-family:ui-monospace,Menlo,monospace;font-size:13px}
 .seg{display:flex;gap:4px;background:var(--bg);border-radius:14px;padding:4px;margin-bottom:12px}.seg button{flex:1;padding:8px 0;font-size:14px;background:none;color:var(--muted)}.seg button.on{background:#fff;color:var(--fg);box-shadow:0 1px 3px rgba(15,23,42,.12)}
+.dc{display:flex;width:100%;justify-content:space-between;align-items:center;gap:10px;text-align:left;background:var(--oksoft);color:#14532d;border-radius:18px;padding:14px 16px;margin-bottom:14px;font-weight:500}.dc b{font-size:17px;display:block;font-weight:700}.dc small{display:block;font-size:13px;opacity:.75;margin-top:2px}.dc .ck{flex:none;width:30px;height:30px;border-radius:50%;background:var(--ok);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
 .msg{color:var(--acc);font-size:14px;margin:10px 0;min-height:20px;font-weight:600}
 .note{background:#fff7e6;color:#8a5a00;border-radius:18px;padding:12px 14px;margin-bottom:14px;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .note button{background:#ffe3a3;color:#6b4500;padding:8px 12px;font-size:14px;flex:none}
@@ -111,6 +112,8 @@ function render(){
     if(due)h+='<div class="note"><span>Dein letztes Backup ist älter als 7 Tage.</span><button data-a="tab" data-t="daten">Sichern</button></div>';
     if(tot)h+='<div class="card" style="padding:14px 16px"><div class="hd" style="margin:0"><b style="font-size:16px">Fortschritt</b><span class="sub" style="margin:0">'+done+' von '+tot+' Sätzen</span></div><div class="bar"><div style="width:'+Math.round(done/tot*100)+'%"></div></div></div>';
     d.ex.forEach(function(e){
+      var all=e.sets.length>0&&e.sets.every(function(s){return s.done});
+      if(all&&e.exp!==true){h+='<button class="dc" data-a="exp" data-m="1" data-e="'+e.id+'"><span><b>'+esc(e.name)+(e.side==='each'?' · pro Seite':'')+'</b><small>'+e.sets.length+(e.sets.length===1?' Satz':' Sätze')+' erledigt · zum Ausklappen tippen</small></span><span class="ck">✓</span></button>';return;}
       h+='<div class="card"><div class="hd"><b>'+esc(e.name)+(e.side==='each'?' <small style="color:var(--muted);font-weight:600;font-size:13px">pro Seite</small>':'')+'</b><button class="link" data-a="delEx" data-e="'+e.id+'">'+(pend===e.id?'Wirklich löschen?':'Löschen')+'</button></div>';
       h+='<div class="seg"><button class="'+(e.mode==='sec'?'':'on')+'" data-a="mode" data-m="kg" data-e="'+e.id+'">Gewicht/Wdh.</button><button class="'+(e.mode==='sec'?'on':'')+'" data-a="mode" data-m="sec" data-e="'+e.id+'">Zeit in Sek.</button></div>';
       h+='<div class="seg"><button class="'+(e.side==='each'?'':'on')+'" data-a="side" data-m="both" data-e="'+e.id+'">Beide Seiten</button><button class="'+(e.side==='each'?'on':'')+'" data-a="side" data-m="each" data-e="'+e.id+'">Pro Seite</button></div>';
@@ -122,7 +125,7 @@ function render(){
         '<button class="chk" data-a="tog" data-e="'+e.id+'" data-i="'+i+'">✓</button>'+
         '<button class="x" data-a="delSet" data-e="'+e.id+'" data-i="'+i+'">×</button></div>';
       });
-      h+='<button class="wide" data-a="addSet" data-e="'+e.id+'">+ Satz</button></div>';
+      h+='<button class="wide" data-a="addSet" data-e="'+e.id+'">+ Satz</button>'+(all?'<button class="wide" style="margin-top:8px" data-a="exp" data-m="0" data-e="'+e.id+'">Einklappen</button>':'')+'</div>';
     });
     if(!d.ex.length){
       h+='<div class="empty">Noch keine Übungen für diesen Tag.</div>';
@@ -162,11 +165,12 @@ document.addEventListener('click',function(ev){
   else if(a==='open'){cur=b.dataset.d;tab='heute';}
   else if(a==='addEx'){var n=document.getElementById('newEx').value.trim();if(!n)return;getDay().ex.push({id:uid(),name:n,sets:[{kg:'',reps:'',done:false}]});save();}
   else if(a==='delEx'){if(wasPend===b.dataset.e){getDay().ex=getDay().ex.filter(function(x){return x.id!==b.dataset.e});pend=null;save();}else pend=b.dataset.e;}
+  else if(a==='exp'&&e){e.exp=b.dataset.m==='1';save();}
   else if(a==='side'&&e){e.side=b.dataset.m;save();}
   else if(a==='mode'&&e){e.mode=b.dataset.m;save();}
   else if(a==='addSet'&&e){var l=e.sets[e.sets.length-1]||{kg:'',reps:'',sec:''};e.sets.push({kg:l.kg,reps:l.reps,sec:l.sec||'',done:false});save();}
   else if(a==='delSet'&&e){e.sets.splice(i,1);save();}
-  else if(a==='tog'&&e){e.sets[i].done=!e.sets[i].done;save();}
+  else if(a==='tog'&&e){e.sets[i].done=!e.sets[i].done;e.exp=false;save();}
   else if(a==='copy'){var pv=prevDay();if(pv){getDay().ex=S.days[pv].ex.map(function(x){return{id:uid(),name:x.name,mode:x.mode,side:x.side,sets:x.sets.map(function(s){return{kg:s.kg,reps:s.reps,sec:s.sec||'',done:false}})}});save();}}
   else if(a==='exp'){S.lb=Date.now();save();keep=JSON.stringify(S);msg='Backup erstellt. Jetzt kopieren und sicher ablegen.';}
   else if(a==='cp'){var t=document.getElementById('bk');keep=t.value;t.select();try{navigator.clipboard.writeText(t.value);document.execCommand('copy');}catch(x){}msg='Kopiert.';}
