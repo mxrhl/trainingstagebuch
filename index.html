@@ -102,7 +102,7 @@ function week(){
     h+='<button class="'+(k===cur?'on ':'')+(k===today()?'td':'')+'" data-a="goto" data-d="'+k+'"><span>'+d.toLocaleDateString('de-DE',{weekday:'short'}).replace('.','')+'</span><b>'+d.getDate()+'</b><i class="'+(has(k)?'dot':'')+'"></i></button>';}
   return h+'</div>';
 }
-var dw=null,SEL='',newForm=false,pendL=null,okId=null,NF=mkNF(),CHD='<svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',CHU='<svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 10l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+var dw=null,COLL={wo:true,lib:true},WD=null,saveWo=false,WN='',woOk='',WE=null,pendW=null,sortMode=false,EL=null,SEL='',newForm=false,pendL=null,okId=null,NF=mkNF(),CHD='<svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',CHU='<svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 10l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 function mkNF(){return{name:'',mode:'kg',side:'both',n:'3',kg:'',reps:'',sec:''}}
 function cfgOf(e){var l=e.sets[e.sets.length-1]||{};return{mode:e.mode||'kg',side:e.side||'both',n:e.sets.length||1,kg:l.kg||'',reps:l.reps||'',sec:l.sec||''}}
 function fromLib(n){var c=(S.lib&&S.lib[n])||{},sets=[];for(var i=0;i<(c.n||1);i++)sets.push({kg:c.kg||'',reps:c.reps||'',sec:c.sec||'',done:false});return{id:uid(),name:n,mode:c.mode||'kg',side:c.side||'both',sets:sets}}
@@ -118,8 +118,38 @@ function addCard(){
     '<div class="add" style="margin-top:12px"><button class="wide" style="margin:0" data-a="nfx">Abbrechen</button><button class="p" style="flex:1" data-a="nfsave">Anlegen &amp; hinzufügen</button></div></div>';}
   return h+'</div>';
 }
+function tpls(){return S.tpl||(S.tpl=[])}
+function woCard(d){var T=tpls(),h='';
+  if(woOk)h+='<div class="msg" style="margin:0 0 12px">Workout „'+esc(woOk)+'“ gespeichert.</div>';
+  if(saveWo)h+='<div class="card"><b style="font-size:16px">Workout speichern</b><input data-wn="1" value="'+esc(WN)+'" placeholder="Name, z. B. Beintag" style="margin:10px 0"><div class="add"><button class="wide" style="margin:0" data-a="wocancel">Abbrechen</button><button class="p" style="flex:1" data-a="wosave">Speichern</button></div></div>';
+  else if(d.ex.length)h+='<button class="wide" style="margin:0 0 14px;background:var(--card);color:var(--muted)" data-a="woform">Tag als Workout speichern</button>';
+  if(T.length)h+='<div class="card"><div class="add"><select id="selWo"><option value="">Workout laden…</option>'+T.map(function(t){return'<option value="'+t.id+'">'+esc(t.name)+'</option>'}).join('')+'</select><button class="p" data-a="woload">Laden</button></div></div>';
+  return h;}
+function woEditor(){var h='<div style="padding:12px 0;border-top:1px solid var(--line)"><b style="font-size:16px">Workout bearbeiten</b><input data-wd="1" value="'+esc(WD.name)+'" placeholder="Name des Workouts" style="margin:10px 0">';
+  WD.ex.forEach(function(x,xi){var m=x.mode==='sec',g='display:grid;grid-template-columns:24px 1fr 1fr 28px;gap:8px;align-items:center;margin:6px 0';
+    h+='<div style="border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:10px"><div class="add"><input data-wx="name" data-xi="'+xi+'" value="'+esc(x.name)+'"><button class="cb" data-a="wdmv" data-m="-1" data-xi="'+xi+'"'+(xi===0?' disabled style="opacity:.3"':'')+'>'+CHU+'</button><button class="cb" data-a="wdmv" data-m="1" data-xi="'+xi+'"'+(xi===WD.ex.length-1?' disabled style="opacity:.3"':'')+'>'+CHD+'</button><button class="cb" data-a="wddelx" data-xi="'+xi+'" style="color:var(--danger)">✕</button></div>'+
+    '<div class="seg" style="margin-top:10px"><button class="'+(m?'':'on')+'" data-a="wdm" data-m="kg" data-xi="'+xi+'">Gewicht/Wdh.</button><button class="'+(m?'on':'')+'" data-a="wdm" data-m="sec" data-xi="'+xi+'">Zeit in Sek.</button></div>'+
+    '<div class="seg"><button class="'+(x.side==='each'?'':'on')+'" data-a="wds" data-m="both" data-xi="'+xi+'">Beide Seiten</button><button class="'+(x.side==='each'?'on':'')+'" data-a="wds" data-m="each" data-xi="'+xi+'">Pro Seite</button></div>';
+    x.sets.forEach(function(s,si){var at=' data-xi="'+xi+'" data-si="'+si+'"';
+      h+='<div style="'+g+'"><span style="color:var(--muted);text-align:center;font-weight:700;font-size:14px">'+(si+1)+'</span>'+(m?'<input inputmode="numeric" style="grid-column:span 2;text-align:center;font-weight:700" data-wx="sec"'+at+' value="'+esc(s.sec||'')+'" placeholder="Sek.">':'<input inputmode="decimal" style="text-align:center;font-weight:700" data-wx="kg"'+at+' value="'+esc(s.kg||'')+'" placeholder="kg"><input inputmode="numeric" style="text-align:center;font-weight:700" data-wx="reps"'+at+' value="'+esc(s.reps||'')+'" placeholder="Wdh.">')+'<button class="x" data-a="wdelset"'+at+'>×</button></div>';});
+    h+='<button class="wide" data-a="wdaddset" data-xi="'+xi+'">+ Satz</button></div>';});
+  h+='<div class="add" style="margin-bottom:10px"><select id="selWd"><option value="">Übung hinzufügen…</option>'+sortedLib().map(function(n){return'<option value="'+esc(n)+'">'+esc(n)+'</option>'}).join('')+'</select><button class="p" data-a="wdadd">Hinzufügen</button></div>';
+  if(WD.err)h+='<div class="msg" style="color:var(--danger)">'+esc(WD.err)+'</div>';
+  return h+'<div class="add"><button class="wide" style="margin:0" data-a="wdcancel">Abbrechen</button><button class="p" style="flex:1" data-a="wdsave">Speichern</button></div></div>';}
+function woListCard(){var T=tpls();if(!T.length)return'';
+  return '<div class="card" style="padding:6px 16px"><div class="hd" style="margin:10px 0 2px"><b>Workouts</b><span style="display:flex;align-items:center;gap:8px"><span class="sub" style="margin:0">'+T.length+'</span><button class="cb" style="margin:0" data-a="tgl" data-k="wo" aria-label="Ein- oder ausklappen">'+(COLL.wo?CHD:CHU)+'</button></span></div>'+(COLL.wo?[]:T).map(function(t){
+    if(WD&&WD.id===t.id)return woEditor();if(WE&&WE.id===t.id)return'<div style="padding:12px 0;border-top:1px solid var(--line)"><input data-we="1" value="'+esc(WE.name)+'"><div class="add" style="margin-top:10px"><button class="wide" style="margin:0" data-a="worncancel">Abbrechen</button><button class="p" style="flex:1" data-a="wornsave">Speichern</button></div></div>';
+    return'<div class="er" style="display:block"><b>'+esc(t.name)+'</b><small>'+t.ex.length+(t.ex.length===1?' Übung':' Übungen')+' · '+esc(t.ex.map(function(x){return x.name}).join(', '))+'</small><div style="display:flex;gap:12px;margin-top:4px"><button class="link" style="color:var(--acc);padding-left:0" data-a="woedit" data-id="'+t.id+'">Bearbeiten</button><button class="link" style="margin-left:0" data-a="wodel" data-id="'+t.id+'">'+(pendW===t.id?'Wirklich entfernen?':'Entfernen')+'</button></div></div>'}).join('')+'</div>';}
+function elForm(){var m=EL.mode==='sec';
+  return '<div style="padding:12px 0;border-top:1px solid var(--line)"><b style="font-size:16px">Übung bearbeiten</b><input data-el="name" value="'+esc(EL.name)+'" style="margin:10px 0">'+
+  '<div class="seg"><button class="'+(m?'':'on')+'" data-a="elm" data-m="kg">Gewicht/Wdh.</button><button class="'+(m?'on':'')+'" data-a="elm" data-m="sec">Zeit in Sek.</button></div>'+
+  '<div class="seg"><button class="'+(EL.side==='each'?'':'on')+'" data-a="els" data-m="both">Beide Seiten</button><button class="'+(EL.side==='each'?'on':'')+'" data-a="els" data-m="each">Pro Seite</button></div>'+
+  '<div class="nfg"><label>Sätze<input inputmode="numeric" data-el="n" value="'+esc(EL.n)+'"></label>'+(m?'<label>Sekunden<input inputmode="numeric" data-el="sec" value="'+esc(EL.sec)+'"></label>':'<label>kg<input inputmode="decimal" data-el="kg" value="'+esc(EL.kg)+'"></label><label>Wdh.<input inputmode="numeric" data-el="reps" value="'+esc(EL.reps)+'"></label>')+'</div>'+
+  (EL.err?'<div class="msg" style="color:var(--danger)">'+esc(EL.err)+'</div>':'')+
+  '<div class="add" style="margin-top:12px"><button class="wide" style="margin:0" data-a="elx">Abbrechen</button><button class="p" style="flex:1" data-a="elsave">Speichern</button></div></div>';}
+function sortCard(d){return '<div class="card"><div class="hd"><b>Reihenfolge ändern</b><button class="p" style="padding:8px 14px" data-a="sortoff">Fertig</button></div>'+d.ex.map(function(x,i){return'<div class="er"><b>'+esc(x.name)+'</b><span style="display:flex"><button class="cb" data-a="mv" data-m="-1" data-e="'+x.id+'"'+(i===0?' disabled style="opacity:.3"':'')+'>'+CHU+'</button><button class="cb" data-a="mv" data-m="1" data-e="'+x.id+'"'+(i===d.ex.length-1?' disabled style="opacity:.3"':'')+'>'+CHD+'</button></span></div>'}).join('')+'</div>';}
 function libCard(){var L=sortedLib();if(!L.length)return'';
-  return '<div class="card" style="padding:6px 16px"><div class="hd" style="margin:10px 0 2px"><b>Übungsliste</b><span class="sub" style="margin:0">'+L.length+'</span></div>'+L.map(function(n){return'<div class="er"><b>'+esc(n)+'</b><button class="link" data-a="libdel" data-n="'+esc(n)+'">'+(pendL===n?'Wirklich entfernen?':'Entfernen')+'</button></div>'}).join('')+'</div>';}
+  return '<div class="card" style="padding:6px 16px"><div class="hd" style="margin:10px 0 2px"><b>Übungsliste</b><span style="display:flex;align-items:center;gap:8px"><span class="sub" style="margin:0">'+L.length+'</span><button class="cb" style="margin:0" data-a="tgl" data-k="lib" aria-label="Ein- oder ausklappen">'+(COLL.lib?CHD:CHU)+'</button></span></div>'+(COLL.lib?[]:L).map(function(n){if(EL&&EL.orig===n)return elForm();return'<div class="er"><b>'+esc(n)+'</b><span style="display:flex;gap:4px"><button class="link" style="color:var(--acc)" data-a="libedit" data-n="'+esc(n)+'">Bearbeiten</button><button class="link" data-a="libdel" data-n="'+esc(n)+'">'+(pendL===n?'Wirklich entfernen?':'Entfernen')+'</button></span></div>'}).join('')+'</div>';}
 ensureLib();
 function num(v){var n=parseFloat(String(v==null?'':v).replace(',','.'));return isNaN(n)?0:n}
 function nf(n){return n.toLocaleString('de-DE',{maximumFractionDigits:1})}
@@ -153,7 +183,7 @@ function render(){
     if(due)h+='<div class="note"><span>Dein letztes Backup ist älter als 7 Tage.</span><button data-a="tab" data-t="daten">Sichern</button></div>';
     if(tot)h+='<div class="card" style="padding:14px 16px"><div class="hd" style="margin:0"><b style="font-size:16px">Fortschritt</b><span class="sub" style="margin:0">'+done+' von '+tot+' Sätzen</span></div><div class="bar"><div style="width:'+Math.round(done/tot*100)+'%"></div></div></div>';
     d.ex.forEach(function(e){
-      var all=e.sets.length>0&&e.sets.every(function(s){return s.done});
+      if(sortMode)return;var all=e.sets.length>0&&e.sets.every(function(s){return s.done});
       if(e.col===true||(e.col!==false&&all)){var dn=e.sets.filter(function(s){return s.done}).length;h+='<button class="dc'+(all?'':' part')+'" data-a="exp" data-m="1" data-e="'+e.id+'"><span><b>'+esc(e.name)+(e.side==='each'?' · pro Seite':'')+'</b><small>'+dn+' von '+e.sets.length+(e.sets.length===1?' Satz':' Sätzen')+' erledigt</small></span><span class="ck">'+(all?'✓':CHD)+'</span></button>';return;}
       h+='<div class="card"><div class="hd"><b>'+esc(e.name)+(e.side==='each'?' <small style="color:var(--muted);font-weight:600;font-size:13px">pro Seite</small>':'')+'</b><button class="link" data-a="delEx" data-e="'+e.id+'">'+(pend===e.id?'Wirklich löschen?':'Löschen')+'</button><button class="cb" data-a="exp" data-m="0" data-e="'+e.id+'" aria-label="Einklappen">'+CHU+'</button></div>';
       h+='<div class="seg"><button class="'+(e.mode==='sec'?'':'on')+'" data-a="mode" data-m="kg" data-e="'+e.id+'">Gewicht/Wdh.</button><button class="'+(e.mode==='sec'?'on':'')+'" data-a="mode" data-m="sec" data-e="'+e.id+'">Zeit in Sek.</button></div>';
@@ -168,11 +198,12 @@ function render(){
       });
       h+='<button class="wide" data-a="addSet" data-e="'+e.id+'">+ Satz</button><button class="wide" style="margin-top:8px;background:var(--bg);color:var(--muted)" data-a="std" data-e="'+e.id+'">'+(okId===e.id?'Als Standard gespeichert ✓':'Als Standard speichern')+'</button></div>';
     });
+    if(sortMode)h+=sortCard(d);else if(d.ex.length>1)h+='<button class="wide" style="margin:0 0 14px;background:var(--card);color:var(--muted)" data-a="sorton">Reihenfolge ändern</button>';
     if(!d.ex.length){
       h+='<div class="empty">Noch keine Übungen für diesen Tag.</div>';
       if(pv)h+='<button class="p" data-a="copy" style="width:100%;margin-bottom:14px">Plan vom '+esc(fmt(pv))+' übernehmen</button>';
     }
-    h+=addCard();var _u=''+
+    h+=woCard(d);h+=addCard();var _u=''+
        '<datalist id="exl">'+names().map(function(n){return'<option value="'+esc(n)+'">'}).join('')+'</datalist></div>';
     h+='<div class="card"><textarea data-k="note" placeholder="Notizen zum Training" style="min-height:80px;font-family:inherit;font-size:16px">'+esc(d.note||'')+'</textarea></div>';
   }else if(tab==='woche'){h+=dash();}else if(tab==='verlauf'){
@@ -185,7 +216,7 @@ function render(){
     });
   }else{
     h+='<div class="top"><div><h1>Daten</h1><p class="sub">Alles bleibt auf diesem Gerät.'+(S.lb?' Letztes Backup: '+esc(new Date(S.lb).toLocaleDateString('de-DE')):'')+'</p></div></div>';
-    h+=libCard();
+    h+=woListCard();h+=libCard();
     h+='<div class="card"><button class="p" data-a="exp" style="width:100%">Backup erstellen</button><div class="msg">'+esc(msg)+'</div>'+
        '<textarea id="bk" placeholder="Hier erscheint dein Backup. Zum Wiederherstellen den Backup-Text einfügen."></textarea>'+
        '<div class="add" style="margin-top:10px"><button class="wide" data-a="cp" style="margin:0">Kopieren</button><button class="wide" data-a="imp" style="margin:0">Wiederherstellen</button></div></div>'+
@@ -198,7 +229,7 @@ function render(){
 function find(id){return getDay().ex.filter(function(e){return e.id===id})[0]}
 document.addEventListener('click',function(ev){
   var b=ev.target.closest('[data-a]');if(!b)return;
-  var a=b.dataset.a,e=b.dataset.e?find(b.dataset.e):null,i=+b.dataset.i,keep=null,wasPend=pend;if(a!=='delEx')pend=null;if(a!=='imp')pendImp=false;if(a!=='libdel')pendL=null;if(a!=='std')okId=null;
+  var a=b.dataset.a,e=b.dataset.e?find(b.dataset.e):null,i=+b.dataset.i,keep=null,wasPend=pend;if(a!=='delEx')pend=null;if(a!=='imp')pendImp=false;if(a!=='libdel')pendL=null;if(a!=='std')okId=null;if(a!=='mv'&&a!=='sorton')sortMode=false;if(a!=='wodel')pendW=null;if(a!=='wosave')woOk='';
   if(a==='tab'){tab=b.dataset.t;msg='';}
   else if(a==='goto')cur=b.dataset.d;
   else if(a==='pw')cur=shift(cur,-7);
@@ -215,6 +246,41 @@ document.addEventListener('click',function(ev){
   else if(a==='nfs')NF.side=b.dataset.m;
   else if(a==='nfx'){newForm=false;NF=mkNF();}
   else if(a==='nfsave'){var nm=NF.name.trim();if(!nm)return;S.lib[nm]={mode:NF.mode,side:NF.side,n:Math.max(1,parseInt(NF.n)||1),kg:NF.kg,reps:NF.reps,sec:NF.sec};getDay().ex.push(fromLib(nm));newForm=false;NF=mkNF();SEL='';save();}
+  else if(a==='tgl'){COLL[b.dataset.k]=!COLL[b.dataset.k];}
+  else if(a==='woedit'){var et=tpls().filter(function(t){return t.id===b.dataset.id})[0];if(et){WD=JSON.parse(JSON.stringify(et));WD.err='';}}
+  else if(a==='wdcancel')WD=null;
+  else if(a==='wdm'&&WD)WD.ex[+b.dataset.xi].mode=b.dataset.m;
+  else if(a==='wds'&&WD)WD.ex[+b.dataset.xi].side=b.dataset.m;
+  else if(a==='wdaddset'&&WD){var xs2=WD.ex[+b.dataset.xi].sets,ls=xs2[xs2.length-1]||{};xs2.push({kg:ls.kg||'',reps:ls.reps||'',sec:ls.sec||''});}
+  else if(a==='wdelset'&&WD){var xs3=WD.ex[+b.dataset.xi].sets;if(xs3.length>1)xs3.splice(+b.dataset.si,1);}
+  else if(a==='wdmv'&&WD){var wl=WD.ex,wa=+b.dataset.xi,wb=wa+(+b.dataset.m);if(wb>=0&&wb<wl.length){var wt2=wl[wa];wl[wa]=wl[wb];wl[wb]=wt2;}}
+  else if(a==='wddelx'&&WD)WD.ex.splice(+b.dataset.xi,1);
+  else if(a==='wdadd'&&WD){var wnm=document.getElementById('selWd').value;if(!wnm)return;var wc=S.lib[wnm]||{},wset=[];for(var q=0;q<(wc.n||1);q++)wset.push({kg:wc.kg||'',reps:wc.reps||'',sec:wc.sec||''});WD.ex.push({name:wnm,mode:wc.mode||'kg',side:wc.side||'both',sets:wset});}
+  else if(a==='wdsave'&&WD){var nm2=WD.name.trim(),bad=WD.ex.some(function(x){return !x.name.trim()});
+    if(!nm2)WD.err='Bitte einen Namen eingeben.';
+    else if(!WD.ex.length)WD.err='Mindestens eine Übung wird benötigt.';
+    else if(bad)WD.err='Jede Übung braucht einen Namen.';
+    else if(tpls().some(function(t){return t.id!==WD.id&&t.name.toLowerCase()===nm2.toLowerCase()}))WD.err='Dieses Workout gibt es schon.';
+    else{var tt=tpls().filter(function(t){return t.id===WD.id})[0];if(tt){tt.name=nm2;tt.ex=WD.ex.map(function(x){return{name:x.name.trim(),mode:x.mode,side:x.side,sets:x.sets}});tt.ex.forEach(function(x){if(!S.lib[x.name])S.lib[x.name]=cfgOf(x);});}WD=null;save();}}
+  else if(a==='woform'){saveWo=true;WN='';}
+  else if(a==='wocancel')saveWo=false;
+  else if(a==='wosave'){var wn=WN.trim();if(!wn)return;var wex=getDay().ex.map(function(x){return{name:x.name,mode:x.mode||'kg',side:x.side||'both',sets:x.sets.map(function(s){return{kg:s.kg||'',reps:s.reps||'',sec:s.sec||''}})}}),T=tpls(),wi=T.findIndex(function(t){return t.name.toLowerCase()===wn.toLowerCase()});if(wi>-1){wn=T[wi].name;T[wi].ex=wex;}else T.push({id:uid(),name:wn,ex:wex});saveWo=false;WN='';woOk=wn;save();}
+  else if(a==='woload'){var wid=document.getElementById('selWo').value,wt=tpls().filter(function(t){return t.id===wid})[0];if(!wt)return;wt.ex.forEach(function(x){if(!S.lib[x.name])S.lib[x.name]=cfgOf(x);getDay().ex.push({id:uid(),name:x.name,mode:x.mode,side:x.side,sets:x.sets.map(function(s){return{kg:s.kg||'',reps:s.reps||'',sec:s.sec||'',done:false}})});});save();}
+  else if(a==='woren'){var rt=tpls().filter(function(t){return t.id===b.dataset.id})[0];if(rt)WE={id:rt.id,name:rt.name};}
+  else if(a==='worncancel')WE=null;
+  else if(a==='wornsave'&&WE){var rn=WE.name.trim(),rt2=tpls().filter(function(t){return t.id===WE.id})[0];if(rn&&rt2){rt2.name=rn;WE=null;save();}}
+  else if(a==='wodel'){var di=b.dataset.id;if(pendW===di){S.tpl=tpls().filter(function(t){return t.id!==di});pendW=null;save();}else pendW=di;}
+  else if(a==='sorton')sortMode=true;
+  else if(a==='mv'){var xs=getDay().ex,ix=xs.findIndex(function(x){return x.id===b.dataset.e}),jx=ix+(+b.dataset.m);if(ix>-1&&jx>=0&&jx<xs.length){var tp=xs[ix];xs[ix]=xs[jx];xs[jx]=tp;save();}}
+  else if(a==='libedit'){var lc=S.lib[b.dataset.n]||{};EL={orig:b.dataset.n,name:b.dataset.n,mode:lc.mode||'kg',side:lc.side||'both',n:String(lc.n||1),kg:lc.kg||'',reps:lc.reps||'',sec:lc.sec||'',err:''};}
+  else if(a==='elm'&&EL)EL.mode=b.dataset.m;
+  else if(a==='els'&&EL)EL.side=b.dataset.m;
+  else if(a==='elx')EL=null;
+  else if(a==='elsave'&&EL){var nn=EL.name.trim();
+    if(!nn){EL.err='Bitte einen Namen eingeben.';}
+    else if(nn!==EL.orig&&S.lib[nn]){EL.err='Diese Übung gibt es schon.';}
+    else{var og=EL.orig;if(nn!==og){delete S.lib[og];Object.keys(S.days).forEach(function(k){S.days[k].ex.forEach(function(x){if(x.name===og)x.name=nn})});}
+      S.lib[nn]={mode:EL.mode,side:EL.side,n:Math.max(1,parseInt(EL.n)||1),kg:EL.kg,reps:EL.reps,sec:EL.sec};EL=null;save();}}
   else if(a==='std'&&e){S.lib[e.name]=cfgOf(e);okId=e.id;save();}
   else if(a==='libdel'){var ln=b.dataset.n;if(pendL===ln){delete S.lib[ln];pendL=null;save();}else pendL=ln;}
   else if(a==='side'&&e){e.side=b.dataset.m;save();}
@@ -230,7 +296,7 @@ document.addEventListener('click',function(ev){
   if(keep!==null&&document.getElementById('bk'))document.getElementById('bk').value=keep;
 });
 document.addEventListener('input',function(ev){
-  var t=ev.target,k=t.dataset.k;if(t.dataset.nf){NF[t.dataset.nf]=t.value;return}if(!k)return;
+  var t=ev.target,k=t.dataset.k;if(t.dataset.nf){NF[t.dataset.nf]=t.value;return}if(t.dataset.wn){WN=t.value;return}if(t.dataset.we&&WE){WE.name=t.value;return}if(t.dataset.wd&&WD){WD.name=t.value;return}if(t.dataset.wx&&WD){var wxx=WD.ex[+t.dataset.xi];if(t.dataset.wx==='name')wxx.name=t.value;else wxx.sets[+t.dataset.si][t.dataset.wx]=t.value;return}if(t.dataset.el){EL[t.dataset.el]=t.value;return}if(!k)return;
   if(k==='note'){getDay().note=t.value;save();return}
   var e=find(t.dataset.e);if(e){e.sets[+t.dataset.i][k]=t.value;save();}
 });
